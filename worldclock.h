@@ -5,15 +5,18 @@ typedef struct ClockInfoListStructTag {
 
 typedef struct ClockInfoTag {
     short gmtOffset;
+    short gmtOffsetMin;
     char *locationName;
 } ClockInfoStruct;
 
 #define CLOCK_NAME_SIZE 32
-#define VERSION	"1.10 -- March 31, 2013"
+#define VERSION	"1.2 -- June 13, 2026"
 
 #define TIMEZONE_NAME	101
 #define GMT_OFFSET_SLIDER	102
 #define GMT_OFFSET_TEXT	103
+#define GMT_OFFSET_MINUTES_SLIDER 104
+#define GMT_OFFSET_MINUTES_TEXT 105
 
 #define wfree(z)   LocalFree((LOCALHANDLE) z)
 #define wmalloc(z) LocalAlloc(LPTR, z)

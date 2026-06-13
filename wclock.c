@@ -54,6 +54,7 @@ LRESULT WINAPI ClockWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
     int oldMapMode;
     ClockInfoStruct *clockInfo;
     int hours;
+    int minutes;
     UINT tens, ones, xOffset;
     char *newName;
     short int newOffset;
@@ -75,12 +76,14 @@ LRESULT WINAPI ClockWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
         case CLOCK_PARAMS_MSG:
             clockInfo = (ClockInfoStruct *) (LONG_PTR) GetWindowLongPtr(hwnd, GWLP_USERDATA);
             newName = (char *) lParam;
-            newOffset = (short int) wParam;
+            short newHoursOffset = (short) HIWORD(wParam);
+            short newOffsetMinutes = (short) LOWORD(wParam);
             if (clockInfo->locationName != NULL)
                 wfree(clockInfo->locationName);
             clockInfo->locationName = (char *) wmalloc(strlen(newName) +1);
             strcpy_s(clockInfo->locationName, CLOCK_NAME_SIZE, newName);
-            clockInfo->gmtOffset = newOffset;
+            clockInfo->gmtOffset = newHoursOffset;
+            clockInfo->gmtOffsetMin = newOffsetMinutes;
             return(0);
 
         case WM_PAINT:
@@ -89,6 +92,14 @@ LRESULT WINAPI ClockWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			gmtime_s(&gmtTime, &now);
             hdc = BeginPaint (hwnd, &ps);
             hours = gmtTime.tm_hour + clockInfo->gmtOffset;
+            minutes = gmtTime.tm_min + clockInfo->gmtOffsetMin;
+            if (minutes < 0) {
+                minutes += 60;
+                hours -= 1;
+            } else if (minutes > 59) {
+                minutes -= 60;
+                hours += 1;
+            }
             if (hours < 0)
                 hours += 24;
             else
@@ -109,8 +120,9 @@ LRESULT WINAPI ClockWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
             xOffset += DIGIT_WIDTH;
             DrawColon(hdc, xOffset, CLOCK_Y_OFFSET, TRUE, litPen, darkPen);
             xOffset += COLON_WIDTH;
-            tens = gmtTime.tm_min / 10;
-            ones = gmtTime.tm_min - tens * 10;
+
+            tens = minutes / 10;
+            ones = minutes - tens * 10;
             DrawDigit(hdc, xOffset, CLOCK_Y_OFFSET, tens, litPen, darkPen);
             xOffset += DIGIT_WIDTH;
             DrawDigit(hdc, xOffset, CLOCK_Y_OFFSET, ones, litPen, darkPen);

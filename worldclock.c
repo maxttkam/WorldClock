@@ -6,6 +6,7 @@
 /* Jeff Otterson  15 December 1995   version 1.02  fix add clock cancel bug   */
 /* Jeff Otterson  31 July 2016       version 1.12  seconds                    */
 /* Jeff Otterson  15 December 2023   version 1.13  always clear on invalidate */
+/* Max Kam        13 June 2026       version 1.2   fractional timezone        */
 /******************************************************************************/
 
 #define WIN32_LEAN_AND_MEAN
@@ -24,7 +25,7 @@ static HINSTANCE hInstance;
 static int numClocks = 0;
 HMENU popupMenu;
 HMENU positionsMenu;
-HWND AddClock(HWND parentWindow, int layout, char *data, int gmtOffset);
+HWND AddClock(HWND parentWindow, int layout, char *name, int gmtOffset, int gmtOffsetMinutes);
 void AdjustWindow(HWND hwnd, int layout);
 int  ModifyClock(HWND clockWindow);
 void DeleteClock(HWND parentWindow, int layout, HWND clockWindow);
@@ -101,7 +102,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, 
 
 LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    int i, gmtOffset;
+    int i, gmtOffset, gmtOffsetMinutes;
     char data[CLOCK_NAME_SIZE], name[CLOCK_NAME_SIZE];
     ClockInfoListStruct *clockInfoListPtr, *clockInfoListDeletePtr;
     ClockInfoStruct *clockInfo;
@@ -117,7 +118,7 @@ LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (numClocks == 0)
             {
-                AddClock(hwnd, layout, "GMT", 0);
+                AddClock(hwnd, layout, "GMT", 0,0);
                 numClocks = 1;
             } /* if numClocks == 0 */
             else
@@ -130,7 +131,9 @@ LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         break;
                     sprintf_s(name, CLOCK_NAME_SIZE, "Clock%dOffset", i);
                     gmtOffset = GetPrivateProfileInt("ClockData", name, 24, INI_FILE_NAME);
-                    AddClock(hwnd, layout, data, gmtOffset);
+                    sprintf_s(name, CLOCK_NAME_SIZE, "Clock%dOffsetMinutes", i);
+                    gmtOffsetMinutes = GetPrivateProfileInt("ClockData", name, 0, INI_FILE_NAME);
+                    AddClock(hwnd, layout, data, gmtOffset, gmtOffsetMinutes);
                 } /* for i */
             } /* if numClocks == 0 */
 
@@ -162,7 +165,7 @@ LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 case WC_ADD:
                     numClocks++;
-                    clockWindow = AddClock(hwnd, layout, "GMT-Zero", 0);
+                    clockWindow = AddClock(hwnd, layout, "GMT-Zero", 0, 0);
                     if (!ModifyClock(clockWindow))
                         DeleteClock(hwnd, layout, clockWindow);
                     else
@@ -238,6 +241,9 @@ LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         sprintf_s(name, CLOCK_NAME_SIZE, "Clock%dOffset",i);
                         sprintf_s(data, CLOCK_NAME_SIZE, "%d",clockInfo->gmtOffset);
                         WritePrivateProfileString("ClockData", name,  data, INI_FILE_NAME);
+                        sprintf_s(name, CLOCK_NAME_SIZE, "Clock%dOffsetMinutes",i);
+                        sprintf_s(data, CLOCK_NAME_SIZE, "%d", clockInfo->gmtOffsetMin);
+                        WritePrivateProfileString("ClockData", name, data, INI_FILE_NAME);
                         clockInfoListPtr = clockInfoListPtr->next;
                         i++;
                     } /* while clockInfoListPtr != NULL */
@@ -276,7 +282,7 @@ LRESULT WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, message, wParam, lParam) ;
 } /* WndProc() */
 
-HWND AddClock(HWND parentWindow, int layout, char *name, int gmtOffset)
+HWND AddClock(HWND parentWindow, int layout, char *name, int gmtOffset, int gmtOffsetMinutes)
 {
     ClockInfoListStruct *clockInfoListPtr = clockInfoList;
     ClockInfoListStruct *newClockInfoListNode = wmalloc(sizeof(ClockInfoListStruct));
@@ -322,8 +328,9 @@ HWND AddClock(HWND parentWindow, int layout, char *name, int gmtOffset)
                                               hInstance,
                                               NULL);
     }
+    WPARAM w = MAKEWPARAM((SHORT)gmtOffsetMinutes,(SHORT)gmtOffset);
     SendMessage(clockInfoListPtr->hwnd, CLOCK_PARAMS_MSG,
-                (WPARAM) gmtOffset,
+                w,
                 (LPARAM) name);
     return(clockInfoListPtr->hwnd);
 } /* AddClock */
@@ -347,10 +354,11 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 {
     static ClockInfoStruct *clockInfo;
     static short gmtOffset;
-	int nScrollCode;
+    static short gmtMinOffset;
     HWND tempControl;
     char tempText[CLOCK_NAME_SIZE + 1];
     LPSTR tempTextPtr;
+	int nScrollCode;
     int pos, min, max;
 
     switch (message)
@@ -358,12 +366,21 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
         case WM_INITDIALOG:
             clockInfo = (ClockInfoStruct *) lParam;
             SetWindowText(GetDlgItem(hDlg, TIMEZONE_NAME), clockInfo->locationName);
+
             gmtOffset = clockInfo->gmtOffset;
             tempControl = GetDlgItem(hDlg, GMT_OFFSET_SLIDER);
             SetScrollRange(tempControl, SB_CTL, -23, 23, FALSE);
             SetScrollPos(tempControl, SB_CTL, gmtOffset, TRUE);
             sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtOffset);
             SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_TEXT), tempText);
+
+            gmtMinOffset = clockInfo->gmtOffsetMin;
+            tempControl = GetDlgItem(hDlg, GMT_OFFSET_MINUTES_SLIDER);
+            SetScrollRange(tempControl, SB_CTL, 0, 59, FALSE);
+            SetScrollPos(tempControl, SB_CTL, gmtMinOffset, TRUE);
+            sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtMinOffset);
+            SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_MINUTES_TEXT), tempText);
+
             return(TRUE);
 
         case WM_COMMAND:
@@ -377,6 +394,7 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
                     clockInfo->locationName = (char *) wmalloc(sizeof(tempText)+1);
                     strcpy_s(clockInfo->locationName, CLOCK_NAME_SIZE, tempText);
                     clockInfo->gmtOffset = gmtOffset;
+                    clockInfo->gmtOffsetMin = gmtMinOffset;
                     EndDialog(hDlg, TRUE);
                     return(TRUE);
 
@@ -439,7 +457,12 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
                 gmtOffset = (short) pos;
                 sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtOffset);
                 SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_TEXT), tempText);
-            } /* if control == .. CUSTOMIZE_TEXT_BUFFER_SLIDER */
+            } /* if control == .. CUSTOMIZE_TEXT_BUFFER_SLIDER */ else if (tempControl == GetDlgItem(hDlg, GMT_OFFSET_MINUTES_SLIDER)) {
+                /* minutes offset */
+                gmtMinOffset = (short) pos;
+                sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtMinOffset);
+                SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_MINUTES_TEXT),tempText);
+            }
             return(TRUE);
 
     } /* switch message */

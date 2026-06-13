@@ -27,6 +27,8 @@
 #define WC_EXIT                         107
 #define GMT_OFFSET_SLIDER               102
 #define GMT_OFFSET_TEXT                 103
+#define GMT_OFFSET_MINUTES_SLIDER       104
+#define GMT_OFFSET_MINUTES_TEXT         105
 
 
 
