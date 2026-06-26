@@ -15,8 +15,11 @@ typedef struct ClockInfoTag {
 #define TIMEZONE_NAME	101
 #define GMT_OFFSET_SLIDER	102
 #define GMT_OFFSET_TEXT	103
-#define GMT_OFFSET_MINUTES_SLIDER 104
-#define GMT_OFFSET_MINUTES_TEXT 105
+
+#define GMT_OFFSET_MINUTES_OPT_0        110
+#define GMT_OFFSET_MINUTES_OPT_15       111
+#define GMT_OFFSET_MINUTES_OPT_30       112
+#define GMT_OFFSET_MINUTES_OPT_45       113
 
 #define wfree(z)   LocalFree((LOCALHANDLE) z)
 #define wmalloc(z) LocalAlloc(LPTR, z)

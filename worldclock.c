@@ -355,6 +355,7 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
     static ClockInfoStruct *clockInfo;
     static short gmtOffset;
     static short gmtMinOffset;
+    static int gmtMinOffsetRadioBtn;
     HWND tempControl;
     char tempText[CLOCK_NAME_SIZE + 1];
     LPSTR tempTextPtr;
@@ -375,12 +376,23 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
             SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_TEXT), tempText);
 
             gmtMinOffset = clockInfo->gmtOffsetMin;
-            tempControl = GetDlgItem(hDlg, GMT_OFFSET_MINUTES_SLIDER);
-            SetScrollRange(tempControl, SB_CTL, 0, 59, FALSE);
-            SetScrollPos(tempControl, SB_CTL, gmtMinOffset, TRUE);
-            sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtMinOffset);
-            SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_MINUTES_TEXT), tempText);
-
+            switch ((short)gmtMinOffset)
+            {
+            case 15:
+                gmtMinOffsetRadioBtn = GMT_OFFSET_MINUTES_OPT_15;
+                break;
+            case 30:
+                gmtMinOffsetRadioBtn = GMT_OFFSET_MINUTES_OPT_30;
+                break;
+            case 45:
+                gmtMinOffsetRadioBtn = GMT_OFFSET_MINUTES_OPT_45;
+                break;
+            case 0:
+            default:
+                gmtMinOffsetRadioBtn = GMT_OFFSET_MINUTES_OPT_0;
+                break;
+            }
+            CheckRadioButton(hDlg, GMT_OFFSET_MINUTES_OPT_0,GMT_OFFSET_MINUTES_OPT_45,gmtMinOffsetRadioBtn);
             return(TRUE);
 
         case WM_COMMAND:
@@ -402,6 +414,29 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
                     EndDialog(hDlg, FALSE);
                     return(TRUE);
             } /* switch wParam */
+            
+            if (HIWORD(wParam) == BN_CLICKED || HIWORD(wParam) == BN_DOUBLECLICKED) {
+                gmtMinOffsetRadioBtn = LOWORD(wParam);
+                CheckRadioButton(hDlg,GMT_OFFSET_MINUTES_OPT_0,GMT_OFFSET_MINUTES_OPT_45,gmtMinOffsetRadioBtn);
+                switch (gmtMinOffsetRadioBtn)
+                {
+                    case GMT_OFFSET_MINUTES_OPT_15:
+                        gmtMinOffset = 15;
+                        break;
+                    case GMT_OFFSET_MINUTES_OPT_30:
+                        gmtMinOffset = 30;
+                        break;
+                    case GMT_OFFSET_MINUTES_OPT_45:
+                        gmtMinOffset = 45;
+                        break;
+                    default:
+                    case GMT_OFFSET_MINUTES_OPT_0:
+                        gmtMinOffset = 0;
+                        break;
+                }
+                return(TRUE);
+            }
+
 			return(TRUE);
 
         case WM_HSCROLL:
@@ -457,12 +492,7 @@ LRESULT WINAPI ModifyDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
                 gmtOffset = (short) pos;
                 sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtOffset);
                 SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_TEXT), tempText);
-            } /* if control == .. CUSTOMIZE_TEXT_BUFFER_SLIDER */ else if (tempControl == GetDlgItem(hDlg, GMT_OFFSET_MINUTES_SLIDER)) {
-                /* minutes offset */
-                gmtMinOffset = (short) pos;
-                sprintf_s(tempText, CLOCK_NAME_SIZE, "%d", gmtMinOffset);
-                SetWindowText(GetDlgItem(hDlg, GMT_OFFSET_MINUTES_TEXT),tempText);
-            }
+            } /* if control == .. CUSTOMIZE_TEXT_BUFFER_SLIDER */
             return(TRUE);
 
     } /* switch message */

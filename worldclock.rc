@@ -1,8 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
-
-
+#include <winuser.h>
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -23,10 +22,12 @@ BEGIN
     SCROLLBAR       GMT_OFFSET_SLIDER,53,43,113,12 //,WS_TABSTOP
 
     LTEXT           "Minutes Offset",-1,6,68,50,8
-    SCROLLBAR       GMT_OFFSET_MINUTES_SLIDER,53,66,113,12 //,WS_TABSTOP
-
+    RADIOBUTTON     "0", GMT_OFFSET_MINUTES_OPT_0,60,69,30,8,WS_GROUP //|WS_TABSTOP
+    RADIOBUTTON     "15", GMT_OFFSET_MINUTES_OPT_15,90,69,30,8 //,WS_TABSTOP
+    RADIOBUTTON     "30", GMT_OFFSET_MINUTES_OPT_30,120,69,30,8 //,WS_TABSTOP
+    RADIOBUTTON     "45", GMT_OFFSET_MINUTES_OPT_45,150,69,30,8 //,WS_TABSTOP
     CTEXT           "",GMT_OFFSET_TEXT,99,56,21,10
-    CTEXT           "",GMT_OFFSET_MINUTES_TEXT,99,82,21,10
+
     DEFPUSHBUTTON   "OK",IDOK,35,99,37,18//,WS_GROUP
     PUSHBUTTON      "Cancel",IDCANCEL,116,99,37,18
 END
